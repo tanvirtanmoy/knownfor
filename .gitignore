@@ -29,3 +29,8 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# claude code (local context / memory — never publish)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
