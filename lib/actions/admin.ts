@@ -209,6 +209,7 @@ export async function createShareLink(formData: FormData): Promise<void> {
 }
 
 // Revoke a share link so its URL/QR can no longer open the feedback form.
+// The row is kept (greyed out in the UI) so its submission count stays visible.
 export async function revokeShareLink(formData: FormData): Promise<void> {
   const { supabase, userId } = await requireOwner();
   const id = formData.get("id")?.toString();
@@ -217,6 +218,21 @@ export async function revokeShareLink(formData: FormData): Promise<void> {
   await supabase
     .from("feedback_links")
     .update({ revoked: true })
+    .eq("id", id)
+    .eq("profile_user_id", userId);
+
+  revalidatePath("/admin");
+}
+
+// Permanently remove a share link (and its history) from the list.
+export async function deleteShareLink(formData: FormData): Promise<void> {
+  const { supabase, userId } = await requireOwner();
+  const id = formData.get("id")?.toString();
+  if (!id) return;
+
+  await supabase
+    .from("feedback_links")
+    .delete()
     .eq("id", id)
     .eq("profile_user_id", userId);
 

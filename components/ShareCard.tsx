@@ -1,7 +1,11 @@
 import QRCode from "qrcode";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/Button";
-import { createShareLink, revokeShareLink } from "@/lib/actions/admin";
+import {
+  createShareLink,
+  revokeShareLink,
+  deleteShareLink,
+} from "@/lib/actions/admin";
 import { formatDate } from "@/lib/utils";
 import type { FeedbackLinkRow } from "@/types/database";
 
@@ -62,22 +66,42 @@ export async function ShareCard({
           {items.map(({ link, url, qr }) => (
             <li
               key={link.id}
-              className="flex flex-col gap-4 rounded-xl border border-line p-4 sm:flex-row sm:items-center"
+              className={`flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center ${
+                link.revoked
+                  ? "border-dashed border-line bg-canvas-subtle/60"
+                  : "border-line"
+              }`}
             >
               {qr && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={qr}
                   alt={`QR code for ${link.label ?? "feedback link"}`}
-                  className="h-28 w-28 shrink-0 rounded-lg border border-line bg-white p-1.5"
+                  className={`h-28 w-28 shrink-0 rounded-lg border border-line bg-white p-1.5 ${
+                    link.revoked ? "opacity-40 grayscale" : ""
+                  }`}
                   width={112}
                   height={112}
                 />
               )}
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 overflow-hidden rounded-lg border border-line bg-canvas-subtle px-3 py-2">
-                  <span className="truncate text-sm text-ink-soft" title={url}>
+                {link.revoked && (
+                  <span className="mb-2 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                    Revoked
+                  </span>
+                )}
+                <div
+                  className={`flex items-center gap-2 overflow-hidden rounded-lg border border-line bg-canvas-subtle px-3 py-2 ${
+                    link.revoked ? "opacity-60" : ""
+                  }`}
+                >
+                  <span
+                    className={`truncate text-sm text-ink-soft ${
+                      link.revoked ? "line-through" : ""
+                    }`}
+                    title={url}
+                  >
                     {url}
                   </span>
                 </div>
@@ -87,22 +111,39 @@ export async function ShareCard({
                   created {formatDate(link.created_at)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <CopyLinkButton url={url} />
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-8 items-center rounded-xl border border-line bg-canvas-card px-3 text-sm font-medium text-ink-soft hover:bg-canvas-subtle"
-                  >
-                    Open ↗
-                  </a>
-                  <form action={revokeShareLink}>
+                  {link.revoked ? (
+                    <span className="inline-flex h-8 items-center text-sm text-ink-muted">
+                      This link can no longer collect feedback.
+                    </span>
+                  ) : (
+                    <>
+                      <CopyLinkButton url={url} />
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center rounded-xl border border-line bg-canvas-card px-3 text-sm font-medium text-ink-soft hover:bg-canvas-subtle"
+                      >
+                        Open ↗
+                      </a>
+                      <form action={revokeShareLink}>
+                        <input type="hidden" name="id" value={link.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex h-8 items-center rounded-xl border border-line bg-canvas-card px-3 text-sm font-medium text-amber-700 hover:bg-amber-50"
+                        >
+                          Revoke
+                        </button>
+                      </form>
+                    </>
+                  )}
+                  <form action={deleteShareLink}>
                     <input type="hidden" name="id" value={link.id} />
                     <button
                       type="submit"
                       className="inline-flex h-8 items-center rounded-xl border border-line bg-canvas-card px-3 text-sm font-medium text-red-600 hover:bg-red-50"
                     >
-                      Revoke
+                      Delete
                     </button>
                   </form>
                 </div>
