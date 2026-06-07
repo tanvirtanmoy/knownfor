@@ -12,10 +12,13 @@ export type Relationship =
   | "friend"
   | "other";
 
+export type UserRole = "user" | "admin";
+
 export interface ProfileRow {
   id: string;
   email: string | null;
   username: string | null;
+  role: UserRole;
   full_name: string | null;
   headline: string | null;
   bio: string | null;

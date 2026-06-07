@@ -13,6 +13,9 @@ export default async function AdminLayout({
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
+  // New users land here without a handle yet — finish onboarding first.
+  if (!profile.public_slug) redirect("/onboarding");
+
   return (
     <div className="container-page py-10">
       <div className="mx-auto max-w-4xl">
@@ -36,6 +39,14 @@ export default async function AdminLayout({
                   target="_blank"
                 >
                   View public ↗
+                </Link>
+              )}
+              {profile.role === "admin" && (
+                <Link
+                  href="/admin/platform"
+                  className="font-medium text-brand hover:text-brand-dark"
+                >
+                  Platform
                 </Link>
               )}
             </nav>

@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign in",
-  robots: { index: false },
+  title: "Sign in or create your profile",
+  description:
+    "Sign in to KnownFor with Google or Microsoft and start collecting authentic feedback from the people you work with.",
 };
 
 export default async function LoginPage() {
@@ -20,10 +21,11 @@ export default async function LoginPage() {
     <div className="container-page py-20">
       <div className="mx-auto max-w-sm">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Sign in
+          Sign in to KnownFor
         </h1>
         <p className="mt-1.5 text-sm text-ink-muted">
-          Admin access for managing your KnownFor profile.
+          New here? Signing in with Google or Microsoft creates your profile
+          automatically.
         </p>
         <div className="mt-8 rounded-2xl border border-line bg-canvas-card p-6 shadow-card">
           <Suspense fallback={null}>

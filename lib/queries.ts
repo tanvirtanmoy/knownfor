@@ -79,6 +79,70 @@ export async function getFeedbackLinks(
   return (data as FeedbackLinkRow[] | null) ?? [];
 }
 
+// --- Platform super-admin queries (RLS grants admin cross-user read) -------
+
+export interface AdminUserRow extends ProfileRow {
+  feedbackCount: number;
+  pendingCount: number;
+}
+
+// All users plus per-user feedback counts, for the platform overview.
+export async function getAllUsersForAdmin(): Promise<AdminUserRow[]> {
+  const supabase = createClient();
+  const [{ data: users }, { data: feedback }] = await Promise.all([
+    supabase.from("users").select("*").order("created_at", { ascending: false }),
+    supabase.from("feedback").select("profile_user_id, status"),
+  ]);
+
+  const counts = new Map<string, { total: number; pending: number }>();
+  for (const f of (feedback as { profile_user_id: string; status: string }[]) ??
+    []) {
+    const c = counts.get(f.profile_user_id) ?? { total: 0, pending: 0 };
+    c.total += 1;
+    if (f.status === "pending") c.pending += 1;
+    counts.set(f.profile_user_id, c);
+  }
+
+  return ((users as ProfileRow[] | null) ?? []).map((u) => ({
+    ...u,
+    feedbackCount: counts.get(u.id)?.total ?? 0,
+    pendingCount: counts.get(u.id)?.pending ?? 0,
+  }));
+}
+
+// All currently-pending feedback across every profile, newest first.
+export async function getPendingFeedbackForAdmin(): Promise<
+  (FeedbackRow & { owner_name: string | null; owner_slug: string | null })[]
+> {
+  const supabase = createClient();
+  const { data: rows } = await supabase
+    .from("feedback")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  const feedback = (rows as FeedbackRow[] | null) ?? [];
+  if (feedback.length === 0) return [];
+
+  const ownerIds = [...new Set(feedback.map((f) => f.profile_user_id))];
+  const { data: owners } = await supabase
+    .from("users")
+    .select("id, full_name, public_slug")
+    .in("id", ownerIds);
+
+  const ownerMap = new Map(
+    ((owners as Pick<ProfileRow, "id" | "full_name" | "public_slug">[]) ?? []).map(
+      (o) => [o.id, o]
+    )
+  );
+
+  return feedback.map((f) => ({
+    ...f,
+    owner_name: ownerMap.get(f.profile_user_id)?.full_name ?? null,
+    owner_slug: ownerMap.get(f.profile_user_id)?.public_slug ?? null,
+  }));
+}
+
 // The signed-in owner's profile row, or null if not signed in / no profile.
 export async function getCurrentProfile(): Promise<ProfileRow | null> {
   const supabase = createClient();
