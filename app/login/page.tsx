@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "@/components/LoginForm";
@@ -32,6 +33,13 @@ export default async function LoginPage() {
             <LoginForm />
           </Suspense>
         </div>
+        <p className="mt-4 text-center text-xs text-ink-muted">
+          By continuing you agree to how we handle your data, described in our{" "}
+          <Link href="/privacy" className="underline hover:text-ink">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

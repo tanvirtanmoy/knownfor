@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { useState } from "react";
+import Link from "next/link";
 import {
   submitFeedback,
   type SubmitFeedbackState,
@@ -144,6 +145,16 @@ export function FeedbackForm({
           only your relationship to {fullName} will be shown.
         </span>
       </label>
+
+      <p className="text-xs leading-relaxed text-ink-muted">
+        Your feedback is stored and, once {fullName} approves it, may be shown on
+        their public profile. We record a hashed form of your IP address to
+        prevent spam. See our{" "}
+        <Link href="/privacy" className="underline hover:text-ink" target="_blank">
+          Privacy Policy
+        </Link>
+        .
+      </p>
 
       <SubmitButton />
     </form>

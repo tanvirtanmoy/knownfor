@@ -77,7 +77,12 @@ function SiteFooter() {
         <p>
           Known<span className="text-brand">For</span> · knownfor.eu
         </p>
-        <p>Discover what you are known for through the people you work with.</p>
+        <div className="flex items-center gap-4">
+          <Link href="/privacy" className="hover:text-ink">
+            Privacy
+          </Link>
+          <p>Discover what you are known for through the people you work with.</p>
+        </div>
       </div>
     </footer>
   );
