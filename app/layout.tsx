@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { env } from "@/lib/env";
+import { getCurrentProfile } from "@/lib/queries";
+import { Button } from "@/components/ui/Button";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,13 +36,41 @@ export const metadata: Metadata = {
   },
 };
 
-function SiteHeader() {
+const navLinkClass =
+  "inline-flex h-9 items-center rounded-xl px-3 text-sm font-medium text-ink-soft hover:bg-canvas-subtle hover:text-ink";
+
+async function SiteHeader() {
+  const profile = await getCurrentProfile();
+
   return (
     <header className="border-b border-line/70 bg-canvas/80 backdrop-blur">
-      <div className="container-page flex h-16 items-center">
+      <div className="container-page flex h-16 items-center justify-between">
         <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
           Known<span className="text-brand">For</span>
         </Link>
+        <nav className="flex items-center gap-1 sm:gap-2">
+          {profile ? (
+            <>
+              {profile.public_slug && (
+                <Link href={`/${profile.public_slug}`} className={navLinkClass}>
+                  My profile
+                </Link>
+              )}
+              <Link href="/admin">
+                <Button size="sm">Dashboard</Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className={navLinkClass}>
+                Sign in
+              </Link>
+              <Link href="/">
+                <Button size="sm">Get started</Button>
+              </Link>
+            </>
+          )}
+        </nav>
       </div>
     </header>
   );
