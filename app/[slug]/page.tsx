@@ -8,7 +8,6 @@ import {
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import { TraitPill } from "@/components/TraitPill";
-import { DEFAULT_TRAITS } from "@/lib/constants";
 
 interface Props {
   params: { slug: string };
@@ -65,20 +64,20 @@ export default async function ProfilePage({ params }: Props) {
           </p>
         )}
 
-        {/* Known For — AI-derived traits when available, else the curated set. */}
-        <section className="mt-10">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Known for
-          </h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(summary?.top_traits && summary.top_traits.length > 0
-              ? summary.top_traits.map((t) => t.trait)
-              : DEFAULT_TRAITS
-            ).map((t) => (
-              <TraitPill key={t} label={t} />
-            ))}
-          </div>
-        </section>
+        {/* Known For — only shown once the AI has derived traits from real
+            feedback. No defaults, so an empty profile stays honest. */}
+        {summary?.top_traits && summary.top_traits.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+              Known for
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {summary.top_traits.map((t) => (
+                <TraitPill key={t.trait} label={t.trait} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Feedback wall */}
         <section className="mt-14">
