@@ -11,6 +11,7 @@ export function LoginForm() {
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || "/admin";
   const oauthError = params.get("error");
+  const expired = params.get("expired") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,6 +73,16 @@ export function LoginForm() {
 
   return (
     <div className="space-y-5">
+      {expired && !error && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          Your session expired after a period of inactivity. Please sign in
+          again.
+        </div>
+      )}
+
       {error && (
         <div
           role="alert"

@@ -1,6 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+// Inactivity timeout: sign users out after 14 days without a request.
+// Supabase's own refresh tokens never expire on the free plan, so we enforce
+// this ourselves with a sliding "last seen" timestamp cookie.
+const INACTIVITY_LIMIT_MS = 14 * 24 * 60 * 60 * 1000;
+const LAST_SEEN_COOKIE = "kf_last_seen";
+// The cookie must outlive the inactivity window — if it expired on its own we
+// could no longer tell that the user had been away, and they'd stay logged in.
+// 400 days is the maximum a browser will honour.
+const LAST_SEEN_MAX_AGE = 60 * 60 * 24 * 400;
+
 // Refreshes the Supabase auth session on each request and guards /admin.
 export async function middleware(request: NextRequest) {
   // 1. Canonical host. OAuth (PKCE) stores its code-verifier cookie on the
@@ -59,6 +69,40 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+
+  // 3. Inactivity timeout. For a signed-in user, compare the last-seen stamp
+  //    against the 14-day window. Too old → sign out and send to login. Still
+  //    active → slide the window forward by re-stamping the current time.
+  if (user) {
+    const lastSeenRaw = request.cookies.get(LAST_SEEN_COOKIE)?.value;
+    const lastSeen = lastSeenRaw ? Number(lastSeenRaw) : null;
+    const now = Date.now();
+
+    if (lastSeen && now - lastSeen > INACTIVITY_LIMIT_MS) {
+      // signOut() clears the auth cookies via the cookie handler above, which
+      // rebuilds `response`; carry those cleared cookies onto the redirect.
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("expired", "1");
+      if (isAdminRoute) {
+        url.searchParams.set("redirect", request.nextUrl.pathname);
+      }
+      const redirect = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+      redirect.cookies.delete(LAST_SEEN_COOKIE);
+      return redirect;
+    }
+
+    response.cookies.set(LAST_SEEN_COOKIE, String(now), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: LAST_SEEN_MAX_AGE,
+    });
+  }
+
   if (isAdminRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
