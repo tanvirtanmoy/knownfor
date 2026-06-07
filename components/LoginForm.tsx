@@ -19,6 +19,9 @@ export function LoginForm() {
   const [oauthLoading, setOauthLoading] = useState<"google" | "azure" | null>(
     null
   );
+  // Email/password is the admin fallback only — hidden until explicitly opened
+  // so new visitors see just the Google/Microsoft options.
+  const [showEmail, setShowEmail] = useState(false);
 
   async function signInWithProvider(provider: "google" | "azure") {
     setError(null);
@@ -103,42 +106,54 @@ export function LoginForm() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-ink-muted">
-        <span className="h-px flex-1 bg-line" />
-        or with email
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {showEmail ? (
+        <>
+          <div className="flex items-center gap-3 text-xs text-ink-muted">
+            <span className="h-px flex-1 bg-line" />
+            or with email
+            <span className="h-px flex-1 bg-line" />
+          </div>
 
-      <form onSubmit={onSubmit} className="space-y-5">
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1.5"
-        />
-      </div>
-      <div>
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1.5"
-        />
-        <FieldError />
-      </div>
-      <Button type="submit" size="lg" disabled={loading} className="w-full">
-        {loading ? "Signing in…" : "Sign in"}
-      </Button>
-      </form>
+          <form onSubmit={onSubmit} className="space-y-5">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1.5"
+              />
+              <FieldError />
+            </div>
+            <Button type="submit" size="lg" disabled={loading} className="w-full">
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowEmail(true)}
+          className="mx-auto block text-xs text-ink-muted underline-offset-2 hover:text-ink hover:underline"
+        >
+          Sign in with email
+        </button>
+      )}
     </div>
   );
 }

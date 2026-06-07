@@ -5,6 +5,7 @@ import "./globals.css";
 import { env } from "@/lib/env";
 import { getCurrentProfile } from "@/lib/queries";
 import { Button } from "@/components/ui/Button";
+import { HeaderSignInButton } from "@/components/HeaderSignInButton";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -61,9 +62,7 @@ async function SiteHeader() {
               </Link>
             </>
           ) : (
-            <Link href="/login">
-              <Button size="sm">Sign in</Button>
-            </Link>
+            <HeaderSignInButton />
           )}
         </nav>
       </div>
