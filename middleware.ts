@@ -3,6 +3,28 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 // Refreshes the Supabase auth session on each request and guards /admin.
 export async function middleware(request: NextRequest) {
+  // 1. Canonical host. OAuth (PKCE) stores its code-verifier cookie on the
+  //    origin the user started on; if Supabase sends them back to a different
+  //    host the exchange fails. Force everyone onto the apex before anything
+  //    else so there is exactly one origin.
+  if (request.nextUrl.hostname === "www.knownfor.eu") {
+    const apex = request.nextUrl.clone();
+    apex.hostname = "knownfor.eu";
+    return NextResponse.redirect(apex, 308);
+  }
+
+  // 2. Safety net: if an OAuth `code` lands anywhere other than the callback
+  //    (e.g. Supabase fell back to the Site URL root), forward it — with its
+  //    query intact — to the callback that knows how to exchange it.
+  if (
+    request.nextUrl.searchParams.has("code") &&
+    request.nextUrl.pathname !== "/auth/callback"
+  ) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = "/auth/callback";
+    return NextResponse.redirect(callback);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
