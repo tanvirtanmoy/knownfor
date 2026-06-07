@@ -61,14 +61,9 @@ async function SiteHeader() {
               </Link>
             </>
           ) : (
-            <>
-              <Link href="/login" className={navLinkClass}>
-                Sign in
-              </Link>
-              <Link href="/login">
-                <Button size="sm">Get started</Button>
-              </Link>
-            </>
+            <Link href="/login">
+              <Button size="sm">Sign in</Button>
+            </Link>
           )}
         </nav>
       </div>
