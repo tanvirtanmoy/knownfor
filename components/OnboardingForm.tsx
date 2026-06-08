@@ -7,6 +7,7 @@ import {
 } from "@/lib/actions/onboarding";
 import { Button } from "@/components/ui/Button";
 import { Label, Input, FieldError } from "@/components/ui/Field";
+import { SlugField } from "@/components/SlugField";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -54,22 +55,19 @@ export function OnboardingForm({
         <FieldError>{fe.full_name}</FieldError>
       </div>
 
-      <div>
-        <Label htmlFor="public_slug">Choose your handle</Label>
-        <Input
-          id="public_slug"
-          name="public_slug"
-          defaultValue={defaultSlug}
-          placeholder="jane-smith"
-          required
-          className="mt-1.5"
-        />
-        <p className="mt-1 text-xs text-ink-muted">
-          Your profile will live at knownfor.eu/<strong>handle</strong>. You can
-          change it later.
-        </p>
-        <FieldError>{fe.public_slug}</FieldError>
-      </div>
+      <SlugField
+        id="public_slug"
+        name="public_slug"
+        label="Choose your handle"
+        defaultValue={defaultSlug}
+        serverError={fe.public_slug}
+        help={
+          <>
+            Your profile will live at knownfor.eu/<strong>handle</strong>. You
+            can change it later.
+          </>
+        }
+      />
 
       <SubmitButton />
     </form>

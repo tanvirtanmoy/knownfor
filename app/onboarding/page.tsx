@@ -2,23 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries";
+import { findAvailableSlug } from "@/lib/slug";
 import { OnboardingForm } from "@/components/OnboardingForm";
 
 export const metadata: Metadata = {
   title: "Set up your profile",
   robots: { index: false },
 };
-
-// Derive a friendly default handle from a name or email local-part.
-function suggestSlug(seed: string): string {
-  return seed
-    .toLowerCase()
-    .trim()
-    .replace(/@.*$/, "") // drop email domain
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
 
 export default async function OnboardingPage() {
   const profile = await getCurrentProfile();
@@ -34,7 +24,9 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
 
   const defaultName = profile.full_name ?? "";
-  const defaultSlug = suggestSlug(
+  // Pre-fill the first *available* handle, so a second "Jane Smith" is offered
+  // jane-smith-2 ready to go rather than hitting a clash on submit.
+  const defaultSlug = await findAvailableSlug(
     profile.full_name || user?.email || profile.email || ""
   );
 

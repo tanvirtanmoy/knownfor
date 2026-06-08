@@ -6,6 +6,7 @@ import { updateProfile, type ProfileFormState } from "@/lib/actions/admin";
 import type { ProfileRow } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { Label, Input, Textarea, FieldError } from "@/components/ui/Field";
+import { SlugField } from "@/components/SlugField";
 
 function initialsOf(name: string | null) {
   return (name ?? "?")
@@ -119,20 +120,18 @@ export function ProfileForm({ profile }: { profile: ProfileRow }) {
           />
           <FieldError>{fe.location}</FieldError>
         </div>
-        <div>
-          <Label htmlFor="public_slug">Public slug</Label>
-          <Input
-            id="public_slug"
-            name="public_slug"
-            defaultValue={profile.public_slug ?? ""}
-            placeholder="tanvir"
-            className="mt-1.5"
-          />
-          <p className="mt-1 text-xs text-ink-muted">
-            Your profile lives at knownfor.eu/<strong>slug</strong>
-          </p>
-          <FieldError>{fe.public_slug}</FieldError>
-        </div>
+        <SlugField
+          id="public_slug"
+          name="public_slug"
+          label="Public slug"
+          defaultValue={profile.public_slug ?? ""}
+          serverError={fe.public_slug}
+          help={
+            <>
+              Your profile lives at knownfor.eu/<strong>slug</strong>
+            </>
+          }
+        />
       </div>
 
       <div>
