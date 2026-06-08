@@ -37,9 +37,6 @@ export const metadata: Metadata = {
   },
 };
 
-const navLinkClass =
-  "inline-flex h-9 items-center rounded-xl px-3 text-sm font-medium text-ink-soft hover:bg-canvas-subtle hover:text-ink";
-
 async function SiteHeader() {
   const profile = await getCurrentProfile();
 
@@ -51,16 +48,9 @@ async function SiteHeader() {
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {profile ? (
-            <>
-              {profile.public_slug && (
-                <Link href={`/${profile.public_slug}`} className={navLinkClass}>
-                  My profile
-                </Link>
-              )}
-              <Link href="/admin">
-                <Button size="sm">Dashboard</Button>
-              </Link>
-            </>
+            <Link href="/admin">
+              <Button size="sm">Dashboard</Button>
+            </Link>
           ) : (
             <HeaderSignInButton />
           )}

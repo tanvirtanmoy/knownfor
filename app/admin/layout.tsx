@@ -30,7 +30,7 @@ export default async function AdminLayout({
                 href="/admin/profile"
                 className="text-ink-soft hover:text-brand"
               >
-                Profile
+                Edit profile
               </Link>
               {profile.public_slug && (
                 <Link
