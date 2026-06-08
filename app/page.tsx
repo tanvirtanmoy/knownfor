@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { getProfileBySlug } from "@/lib/queries";
+
+// The public demo profile linked from the hero. Verified to exist at render
+// time so the CTA never 404s if the example is ever removed.
+const EXAMPLE_SLUG = "jane";
 
 const STEPS = [
   {
@@ -20,7 +25,9 @@ const STEPS = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const example = await getProfileBySlug(EXAMPLE_SLUG);
+
   return (
     <div className="container-page">
       {/* Hero */}
@@ -37,13 +44,15 @@ export default function LandingPage() {
             the people they work with, so they can understand and share their
             real strengths.
           </p>
-          <div className="mt-9 flex justify-center">
-            <Link href="/jane">
-              <Button size="lg" className="w-full sm:w-auto">
-                View example profile
-              </Button>
-            </Link>
-          </div>
+          {example && (
+            <div className="mt-9 flex justify-center">
+              <Link href={`/${EXAMPLE_SLUG}`}>
+                <Button size="lg" className="w-full sm:w-auto">
+                  View example profile
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { profileSchema } from "@/lib/validators/profile";
+import { profileSchema, RESERVED_SLUGS } from "@/lib/validators/profile";
 import { sanitizeText } from "@/lib/utils";
 import { summarizeFeedback } from "@/lib/ai/summarize-feedback";
 import { generateToken } from "@/lib/feedback-links";
@@ -38,6 +38,7 @@ export async function moderateFeedback(formData: FormData): Promise<void> {
       .eq("id", id)
       .eq("profile_user_id", userId);
     revalidatePath("/admin");
+    revalidatePath("/", "layout");
     return;
   }
 
@@ -56,6 +57,7 @@ export async function moderateFeedback(formData: FormData): Promise<void> {
         .eq("profile_user_id", userId);
     }
     revalidatePath("/admin");
+    revalidatePath("/", "layout");
     return;
   }
 
@@ -96,6 +98,7 @@ export async function editFeedbackSentence(formData: FormData): Promise<void> {
     .eq("profile_user_id", userId);
 
   revalidatePath("/admin");
+  revalidatePath("/", "layout");
 }
 
 export interface ProfileFormState {
@@ -129,6 +132,14 @@ export async function updateProfile(
   }
 
   const v = parsed.data;
+
+  if (RESERVED_SLUGS.has(v.public_slug)) {
+    return {
+      fieldErrors: { public_slug: "That slug is reserved. Try another." },
+      error: "Please choose a different slug.",
+    };
+  }
+
   const { error } = await supabase
     .from("users")
     .update({
@@ -176,6 +187,18 @@ export async function generateSummary(): Promise<void> {
     .eq("is_public", true);
 
   const feedback = (rows as Pick<FeedbackRow, "sentence" | "relationship">[]) ?? [];
+
+  // Nothing public to summarise — clear any existing summary so the public page
+  // never shows traits/summary text above an empty feedback wall.
+  if (feedback.length === 0) {
+    await supabase
+      .from("profile_summaries")
+      .delete()
+      .eq("profile_user_id", userId);
+    revalidatePath("/admin");
+    revalidatePath("/", "layout");
+    return;
+  }
 
   const result = await summarizeFeedback({
     fullName: (profile?.full_name as string) ?? "this person",

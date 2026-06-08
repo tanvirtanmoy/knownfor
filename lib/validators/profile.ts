@@ -23,6 +23,7 @@ export const profileSchema = z.object({
   public_slug: z
     .string()
     .trim()
+    .toLowerCase()
     .min(2, "Slug must be at least 2 characters.")
     .max(40)
     .regex(

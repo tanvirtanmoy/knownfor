@@ -9,7 +9,7 @@ import {
   feedbackFormSchema,
   looksSpammy,
 } from "@/lib/validators/feedback";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit-db";
 import { hashIp, sanitizeText } from "@/lib/utils";
 import { notifyNewFeedback } from "@/lib/notifications/email";
 
@@ -72,9 +72,11 @@ export async function submitFeedback(
 
   const ip = clientIp();
   const ipHash = hashIp(ip);
-  const limit = rateLimit(`feedback:${slug}:${ipHash}`, {
+
+  const supabase = createClient();
+  const limit = await checkRateLimit(supabase, `feedback:${slug}:${ipHash}`, {
     limit: 5,
-    windowMs: 60 * 60 * 1000,
+    windowSeconds: 60 * 60,
   });
   if (!limit.ok) {
     return {
@@ -84,7 +86,6 @@ export async function submitFeedback(
     };
   }
 
-  const supabase = createClient();
   const { error } = await supabase.from("feedback").insert({
     profile_user_id: profile.id,
     sentence,

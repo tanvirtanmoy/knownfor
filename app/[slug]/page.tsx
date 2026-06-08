@@ -47,6 +47,12 @@ export default async function ProfilePage({ params }: Props) {
     getLatestSummary(profile.id),
   ]);
 
+  // The summary and "Known for" traits are derived from public feedback, so they
+  // must never outlive it. If nothing is publicly visible, hide them — otherwise
+  // a profile whose feedback was hidden or deleted would show traits floating
+  // above an empty wall.
+  const hasPublicFeedback = feedback.length > 0;
+
   return (
     <div className="container-page py-12 sm:py-16">
       <div className="mx-auto max-w-4xl">
@@ -58,7 +64,7 @@ export default async function ProfilePage({ params }: Props) {
           </p>
         )}
 
-        {summary?.summary && (
+        {hasPublicFeedback && summary?.summary && (
           <p className="mt-6 max-w-2xl border-l-2 border-brand/40 pl-4 text-lg italic leading-relaxed text-ink">
             {summary.summary}
           </p>
@@ -66,7 +72,7 @@ export default async function ProfilePage({ params }: Props) {
 
         {/* Known For — only shown once the AI has derived traits from real
             feedback. No defaults, so an empty profile stays honest. */}
-        {summary?.top_traits && summary.top_traits.length > 0 && (
+        {hasPublicFeedback && summary?.top_traits && summary.top_traits.length > 0 && (
           <section className="mt-10">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
               Known for
