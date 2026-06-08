@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/queries";
 import { signOut } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/Button";
+import { AdminNav } from "@/components/AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -16,40 +16,22 @@ export default async function AdminLayout({
   // New users land here without a handle yet — finish onboarding first.
   if (!profile.public_slug) redirect("/onboarding");
 
+  // "Admin" is reserved for the platform super-admin. Everyone else sees their
+  // own last name (falling back to their first name, then a neutral label).
+  const nameParts = profile.full_name?.trim().split(/\s+/) ?? [];
+  const ownLabel = nameParts.at(-1) || "Dashboard";
+  const heading = profile.role === "admin" ? "Admin" : ownLabel;
+
   return (
     <div className="container-page py-10">
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-lg font-semibold text-ink">Admin</span>
-            <nav className="flex items-center gap-3 text-sm">
-              <Link href="/admin" className="text-ink-soft hover:text-brand">
-                Feedback
-              </Link>
-              <Link
-                href="/admin/profile"
-                className="text-ink-soft hover:text-brand"
-              >
-                Edit profile
-              </Link>
-              {profile.public_slug && (
-                <Link
-                  href={`/${profile.public_slug}`}
-                  className="text-ink-soft hover:text-brand"
-                  target="_blank"
-                >
-                  View public ↗
-                </Link>
-              )}
-              {profile.role === "admin" && (
-                <Link
-                  href="/admin/platform"
-                  className="font-medium text-brand hover:text-brand-dark"
-                >
-                  Platform
-                </Link>
-              )}
-            </nav>
+            <span className="text-lg font-semibold text-ink">{heading}</span>
+            <AdminNav
+              publicSlug={profile.public_slug}
+              isAdmin={profile.role === "admin"}
+            />
           </div>
           <form action={signOut}>
             <Button type="submit" variant="ghost" size="sm">
