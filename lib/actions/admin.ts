@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { profileSchema, RESERVED_SLUGS } from "@/lib/validators/profile";
 import { sanitizeText } from "@/lib/utils";
 import { summarizeFeedback } from "@/lib/ai/summarize-feedback";
@@ -16,6 +16,22 @@ async function requireOwner() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   return { supabase, userId: user.id };
+}
+
+// Remove a user's stored avatars, optionally keeping one path (the just-uploaded
+// file). Best-effort: storage isn't covered by the DB cascade, so we tidy up the
+// per-user folder ourselves. Errors are swallowed — a stale file is harmless.
+async function pruneAvatars(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  keepPath?: string
+) {
+  const { data: files } = await admin.storage.from("avatars").list(userId);
+  if (!files?.length) return;
+  const stale = files
+    .map((o) => `${userId}/${o.name}`)
+    .filter((p) => p !== keepPath);
+  if (stale.length) await admin.storage.from("avatars").remove(stale);
 }
 
 export type ModerationAction =
@@ -118,7 +134,6 @@ export async function updateProfile(
     headline: formData.get("headline") || undefined,
     bio: formData.get("bio") || undefined,
     location: formData.get("location") || undefined,
-    profile_image_url: formData.get("profile_image_url") || "",
     public_slug: formData.get("public_slug"),
   });
 
@@ -140,16 +155,70 @@ export async function updateProfile(
     };
   }
 
+  // Profile photo: the user may upload a new file, remove the current one, or
+  // leave it untouched. `imageUrl === undefined` means "no change" — we only
+  // write profile_image_url when there's an actual upload or an explicit remove,
+  // so saving other fields never clears an existing photo.
+  let imageUrl: string | null | undefined;
+  const file = formData.get("profile_image");
+  const removeImage = formData.get("remove_image") === "on";
+
+  if (file instanceof File && file.size > 0) {
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!ALLOWED.includes(file.type)) {
+      return {
+        fieldErrors: { profile_image: "Use a JPEG, PNG, WebP, or GIF image." },
+        error: "Please choose a valid image.",
+      };
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      return {
+        fieldErrors: { profile_image: "Image must be 2 MB or smaller." },
+        error: "That image is too large.",
+      };
+    }
+
+    const admin = createAdminClient();
+    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+    const path = `${userId}/${Date.now()}.${ext}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+
+    const { error: upErr } = await admin.storage
+      .from("avatars")
+      .upload(path, bytes, { contentType: file.type, upsert: true });
+    if (upErr) {
+      return { error: "Could not upload your photo. Please try again." };
+    }
+
+    imageUrl = admin.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+
+    // Best-effort: prune the user's older avatars so the bucket doesn't grow.
+    await pruneAvatars(admin, userId, path);
+  } else if (removeImage) {
+    imageUrl = null;
+    const admin = createAdminClient();
+    await pruneAvatars(admin, userId);
+  }
+
+  const update: {
+    full_name: string;
+    headline: string | null;
+    bio: string | null;
+    location: string | null;
+    public_slug: string;
+    profile_image_url?: string | null;
+  } = {
+    full_name: v.full_name,
+    headline: v.headline ?? null,
+    bio: v.bio ?? null,
+    location: v.location ?? null,
+    public_slug: v.public_slug,
+  };
+  if (imageUrl !== undefined) update.profile_image_url = imageUrl;
+
   const { error } = await supabase
     .from("users")
-    .update({
-      full_name: v.full_name,
-      headline: v.headline ?? null,
-      bio: v.bio ?? null,
-      location: v.location ?? null,
-      profile_image_url: v.profile_image_url ?? null,
-      public_slug: v.public_slug,
-    })
+    .update(update)
     .eq("id", userId);
 
   if (error) {

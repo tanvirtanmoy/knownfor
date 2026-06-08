@@ -31,6 +31,15 @@ export async function deleteOwnAccount(
   await supabase.auth.signOut();
 
   const admin = createAdminClient();
+
+  // Storage isn't covered by the DB cascade — remove any uploaded avatars first.
+  const { data: avatarFiles } = await admin.storage.from("avatars").list(userId);
+  if (avatarFiles?.length) {
+    await admin.storage
+      .from("avatars")
+      .remove(avatarFiles.map((o) => `${userId}/${o.name}`));
+  }
+
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
     return { error: "Could not delete your account. Please try again or contact support." };
