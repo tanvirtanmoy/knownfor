@@ -11,13 +11,9 @@ export const metadata: Metadata = {
 // Plain, readable privacy notice. This is a good-faith disclosure written to
 // match what the app actually does — it is not legal advice. Have it reviewed
 // by a qualified advisor before relying on it commercially.
-//
-// FILL IN before going to production:
-//   • PRIVACY_CONTACT  — the address that receives data-protection requests
-//   • OPERATOR         — the legal person/entity acting as data controller
 const PRIVACY_CONTACT = "privacy@knownfor.eu";
-const OPERATOR = "the operator of KnownFor";
-const LAST_UPDATED = "7 June 2026";
+const OPERATOR = "Tanmoy Tanvir, operating as KnownFor";
+const LAST_UPDATED = "8 June 2026";
 
 function Section({
   title,
