@@ -6,7 +6,12 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { profileSchema, RESERVED_SLUGS } from "@/lib/validators/profile";
 import { sanitizeText } from "@/lib/utils";
 import { summarizeFeedback } from "@/lib/ai/summarize-feedback";
-import { generateToken } from "@/lib/feedback-links";
+import {
+  generateToken,
+  MAX_ACTIVE_LINKS,
+  MAX_LINKS_PER_DAY,
+} from "@/lib/feedback-links";
+import { checkRateLimit } from "@/lib/rate-limit-db";
 import type { FeedbackStatus, FeedbackRow } from "@/types/database";
 
 async function requireOwner() {
@@ -286,8 +291,30 @@ export async function generateSummary(): Promise<void> {
 }
 
 // Create a new private share link (unique token) for the owner's feedback form.
+// Two guards keep this bounded per user: a hard cap on active (non-revoked)
+// links, and a daily creation rate limit to stop revoke-and-recreate churn.
 export async function createShareLink(formData: FormData): Promise<void> {
   const { supabase, userId } = await requireOwner();
+
+  // 1) Active-link cap. Revoking/deleting a link frees a slot.
+  const { count } = await supabase
+    .from("feedback_links")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_user_id", userId)
+    .eq("revoked", false);
+  if ((count ?? 0) >= MAX_ACTIVE_LINKS) {
+    redirect("/admin?linkError=limit");
+  }
+
+  // 2) Daily creation rate limit (anti-churn), shared across instances.
+  const rate = await checkRateLimit(supabase, `links:${userId}`, {
+    limit: MAX_LINKS_PER_DAY,
+    windowSeconds: 60 * 60 * 24,
+  });
+  if (!rate.ok) {
+    redirect("/admin?linkError=rate");
+  }
+
   const label =
     sanitizeText(formData.get("label")?.toString() ?? "").slice(0, 60) || null;
 

@@ -6,6 +6,7 @@ import {
   revokeShareLink,
   deleteShareLink,
 } from "@/lib/actions/admin";
+import { MAX_ACTIVE_LINKS } from "@/lib/feedback-links";
 import { formatDate } from "@/lib/utils";
 import type { FeedbackLinkRow } from "@/types/database";
 
@@ -21,6 +22,9 @@ export async function ShareCard({
   siteUrl: string;
   slug: string;
 }) {
+  const activeCount = links.filter((l) => !l.revoked).length;
+  const atCap = activeCount >= MAX_ACTIVE_LINKS;
+
   const items = await Promise.all(
     links.map(async (link) => {
       const url = `${siteUrl}/${slug}/feedback?k=${link.token}`;
@@ -50,12 +54,24 @@ export async function ShareCard({
             the exact link can open your feedback form. Revoke any link anytime.
           </p>
         </div>
-        <form action={createShareLink} className="shrink-0">
-          <Button type="submit" size="sm">
-            Generate link
-          </Button>
-        </form>
+        <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+          <form action={createShareLink}>
+            <Button type="submit" size="sm" disabled={atCap}>
+              Generate link
+            </Button>
+          </form>
+          <p className="text-xs text-ink-muted">
+            {activeCount} / {MAX_ACTIVE_LINKS} active links
+          </p>
+        </div>
       </div>
+
+      {atCap && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          You&apos;ve reached the limit of {MAX_ACTIVE_LINKS} active links.
+          Revoke or delete one to generate another.
+        </p>
+      )}
 
       {items.length === 0 ? (
         <p className="mt-5 rounded-xl border border-dashed border-line bg-canvas-subtle p-5 text-sm text-ink-soft">

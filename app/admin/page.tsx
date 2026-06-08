@@ -16,9 +16,21 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams?: { linkError?: string };
+}) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+
+  const linkError = searchParams?.linkError;
+  const linkErrorMessage =
+    linkError === "limit"
+      ? "You've reached your limit of active links. Revoke or delete one to generate another."
+      : linkError === "rate"
+        ? "You've created a lot of links recently. Please try again later."
+        : null;
 
   const [all, summary, links] = await Promise.all([
     getOwnerFeedback(profile.id),
@@ -41,6 +53,15 @@ export default async function AdminDashboard() {
           Approving feedback makes it public on your profile wall.
         </p>
       </div>
+
+      {linkErrorMessage && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {linkErrorMessage}
+        </div>
+      )}
 
       {profile.public_slug && (
         <ShareCard
