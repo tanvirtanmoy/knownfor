@@ -17,14 +17,16 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(oauthError);
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "azure" | null>(
-    null
-  );
+  const [oauthLoading, setOauthLoading] = useState<
+    "google" | "azure" | "linkedin_oidc" | null
+  >(null);
   // Email/password is the admin fallback only — hidden until explicitly opened
   // so new visitors see just the Google/Microsoft options.
   const [showEmail, setShowEmail] = useState(false);
 
-  async function signInWithProvider(provider: "google" | "azure") {
+  async function signInWithProvider(
+    provider: "google" | "azure" | "linkedin_oidc"
+  ) {
     setError(null);
     setOauthLoading(provider);
 
@@ -34,12 +36,20 @@ export function LoginForm() {
       callback.searchParams.set("redirect", redirectTo);
     }
 
+    // Azure & LinkedIn (OIDC): ask for basic profile + email so we can prefill
+    // the name and import the profile photo.
+    const scopes =
+      provider === "azure"
+        ? "email openid profile"
+        : provider === "linkedin_oidc"
+          ? "openid profile email"
+          : undefined;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: callback.toString(),
-        // Azure: ask for the basic profile + email so we can prefill the name.
-        ...(provider === "azure" ? { scopes: "email openid profile" } : {}),
+        ...(scopes ? { scopes } : {}),
       },
     });
 
@@ -114,6 +124,18 @@ export function LoginForm() {
           {oauthLoading === "azure"
             ? "Redirecting…"
             : "Continue with Microsoft"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          disabled={oauthLoading !== null}
+          onClick={() => signInWithProvider("linkedin_oidc")}
+          className="w-full"
+        >
+          {oauthLoading === "linkedin_oidc"
+            ? "Redirecting…"
+            : "Continue with LinkedIn"}
         </Button>
       </div>
 
