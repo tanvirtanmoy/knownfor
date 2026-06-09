@@ -9,7 +9,10 @@ import {
 import { AdminFeedbackTable } from "@/components/AdminFeedbackTable";
 import { ShareCard } from "@/components/ShareCard";
 import { AdminSummaryCard } from "@/components/AdminSummaryCard";
+import { dailyRateLimitKey, getRateLimitCount } from "@/lib/rate-limit-db";
 import { env } from "@/lib/env";
+
+const SUMMARY_DAILY_LIMIT = 3;
 
 export const metadata: Metadata = {
   title: "Moderate feedback",
@@ -40,6 +43,18 @@ export default async function AdminDashboard({
     getLatestSummary(profile.id),
     getFeedbackLinks(profile.id),
   ]);
+  // Live daily-usage count for the summary generator (admins are uncapped).
+  const isAdmin = profile.role === "admin";
+  const summaryUsage = isAdmin
+    ? null
+    : {
+        used: Math.min(
+          await getRateLimitCount(dailyRateLimitKey(`summary:${profile.id}`)),
+          SUMMARY_DAILY_LIMIT
+        ),
+        max: SUMMARY_DAILY_LIMIT,
+      };
+
   const pending = all.filter((f) => f.status === "pending");
   const approved = all.filter((f) => f.status === "approved");
   const archived = all.filter(
@@ -77,7 +92,7 @@ export default async function AdminDashboard({
       <AdminSummaryCard
         summary={summary}
         hasApprovedFeedback={approved.length > 0}
-        showDailyLimit={profile.role !== "admin"}
+        dailyUsage={summaryUsage}
       />
 
       <AdminFeedbackTable

@@ -7,15 +7,16 @@ import type { ProfileSummaryRow } from "@/types/database";
 export function AdminSummaryCard({
   summary,
   hasApprovedFeedback,
-  showDailyLimit = false,
+  dailyUsage = null,
 }: {
   summary: ProfileSummaryRow | null;
   hasApprovedFeedback: boolean;
-  // Non-admins can (re)generate at most 3×/day; surface that up front rather
-  // than only via the error banner after they hit the cap. Admins are exempt,
-  // so this stays hidden for them.
-  showDailyLimit?: boolean;
+  // Non-admins can (re)generate at most `max`×/day; surface the live count up
+  // front rather than only via the error banner after they hit the cap. Null for
+  // admins (uncapped), so the hint stays hidden for them.
+  dailyUsage?: { used: number; max: number } | null;
 }) {
+  const atDailyLimit = dailyUsage ? dailyUsage.used >= dailyUsage.max : false;
   return (
     <section className="rounded-2xl border border-line bg-canvas-card p-6 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -28,14 +29,24 @@ export function AdminSummaryCard({
         </div>
         <div className="flex flex-col items-start gap-1.5 sm:items-end">
           <form action={generateSummary}>
-            <Button type="submit" size="sm" disabled={!hasApprovedFeedback}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!hasApprovedFeedback || atDailyLimit}
+            >
               {summary ? "Regenerate" : "Generate summary"}
             </Button>
           </form>
-          {showDailyLimit && hasApprovedFeedback && (
-            <p className="text-xs text-ink-muted">
-              Up to 3 generations per day
-            </p>
+          {dailyUsage && hasApprovedFeedback && (
+            <div className="text-left text-xs text-ink-muted sm:text-right">
+              <p className={atDailyLimit ? "font-medium text-amber-700" : ""}>
+                {dailyUsage.used}/{dailyUsage.max} used today
+              </p>
+              <p>
+                Up to {dailyUsage.max} generations per day · resets at midnight
+                (UTC)
+              </p>
+            </div>
           )}
         </div>
       </div>

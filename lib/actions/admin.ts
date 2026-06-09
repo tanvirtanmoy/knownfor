@@ -11,7 +11,7 @@ import {
   MAX_ACTIVE_LINKS,
   MAX_LINKS_PER_DAY,
 } from "@/lib/feedback-links";
-import { checkRateLimit } from "@/lib/rate-limit-db";
+import { checkRateLimit, dailyRateLimitKey } from "@/lib/rate-limit-db";
 import type { FeedbackStatus, FeedbackRow } from "@/types/database";
 
 async function requireOwner() {
@@ -261,10 +261,11 @@ export async function generateSummary(): Promise<void> {
   // right before the OpenAI call so a blocked attempt never burns API quota and
   // a no-op "clear empty summary" above never consumes a daily slot.
   if (profile?.role !== "admin") {
-    const rate = await checkRateLimit(supabase, `summary:${userId}`, {
-      limit: 3,
-      windowSeconds: 60 * 60 * 24,
-    });
+    const rate = await checkRateLimit(
+      supabase,
+      dailyRateLimitKey(`summary:${userId}`),
+      { limit: 3, windowSeconds: 60 * 60 * 24 }
+    );
     if (!rate.ok) {
       redirect("/admin?summaryError=rate");
     }
