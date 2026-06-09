@@ -13,7 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { data } = await supabase
       .from("users")
       .select("public_slug, updated_at")
-      .not("public_slug", "is", null);
+      .not("public_slug", "is", null)
+      .eq("is_public", true);
 
     for (const row of data ?? []) {
       routes.push({

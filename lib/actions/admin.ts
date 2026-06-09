@@ -11,8 +11,18 @@ import {
   MAX_ACTIVE_LINKS,
   MAX_LINKS_PER_DAY,
 } from "@/lib/feedback-links";
+import {
+  generateViewToken,
+  isViewLinkActive,
+  MAX_ACTIVE_VIEW_LINKS,
+  MAX_VIEW_LINKS_PER_DAY,
+} from "@/lib/view-links";
 import { checkRateLimit, dailyRateLimitKey } from "@/lib/rate-limit-db";
-import type { FeedbackStatus, FeedbackRow } from "@/types/database";
+import type {
+  FeedbackStatus,
+  FeedbackRow,
+  ProfileViewLinkRow,
+} from "@/types/database";
 
 async function requireOwner() {
   const supabase = createClient();
@@ -348,6 +358,103 @@ export async function deleteShareLink(formData: FormData): Promise<void> {
 
   await supabase
     .from("feedback_links")
+    .delete()
+    .eq("id", id)
+    .eq("profile_user_id", userId);
+
+  revalidatePath("/admin");
+}
+
+// --- Profile visibility + private view links -------------------------------
+
+// Flip the profile between public (live at /<slug>, indexed) and private
+// (only reachable through a /v/<token> view link). Driven by a hidden form
+// field "make_public" = "on" | "off".
+export async function setProfileVisibility(formData: FormData): Promise<void> {
+  const { supabase, userId } = await requireOwner();
+  const makePublic = formData.get("make_public") === "on";
+
+  await supabase
+    .from("users")
+    .update({ is_public: makePublic })
+    .eq("id", userId);
+
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+}
+
+// Create a private view link (unique token) so the owner can share their wall
+// with specific people without making it world-public. Same two guards as feedback
+// links: an active-link cap plus a daily creation rate limit (anti-churn).
+// An optional "expires_days" field sets a self-expiring link.
+export async function createViewLink(formData: FormData): Promise<void> {
+  const { supabase, userId } = await requireOwner();
+
+  // 1) Active-link cap (counts non-revoked, non-expired links).
+  const { data: existing } = await supabase
+    .from("profile_view_links")
+    .select("*")
+    .eq("profile_user_id", userId);
+  const activeCount = ((existing as ProfileViewLinkRow[] | null) ?? []).filter(
+    isViewLinkActive
+  ).length;
+  if (activeCount >= MAX_ACTIVE_VIEW_LINKS) {
+    redirect("/admin?viewError=limit");
+  }
+
+  // 2) Daily creation rate limit (anti-churn), shared across instances.
+  const rate = await checkRateLimit(supabase, `viewlinks:${userId}`, {
+    limit: MAX_VIEW_LINKS_PER_DAY,
+    windowSeconds: 60 * 60 * 24,
+  });
+  if (!rate.ok) {
+    redirect("/admin?viewError=rate");
+  }
+
+  const label =
+    sanitizeText(formData.get("label")?.toString() ?? "").slice(0, 60) || null;
+
+  // Optional expiry: 7 / 30 / 90 days, anything else (incl. "never") → no expiry.
+  const expiresDays = Number(formData.get("expires_days"));
+  const expires_at =
+    [7, 30, 90].includes(expiresDays)
+      ? new Date(Date.now() + expiresDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+  await supabase.from("profile_view_links").insert({
+    profile_user_id: userId,
+    token: generateViewToken(),
+    label,
+    expires_at,
+  });
+
+  revalidatePath("/admin");
+}
+
+// Revoke a view link so its URL can no longer render the profile. The row is
+// kept (greyed out) so its view count stays visible.
+export async function revokeViewLink(formData: FormData): Promise<void> {
+  const { supabase, userId } = await requireOwner();
+  const id = formData.get("id")?.toString();
+  if (!id) return;
+
+  await supabase
+    .from("profile_view_links")
+    .update({ revoked: true })
+    .eq("id", id)
+    .eq("profile_user_id", userId);
+
+  revalidatePath("/admin");
+}
+
+// Permanently remove a view link (and its history) from the list.
+export async function deleteViewLink(formData: FormData): Promise<void> {
+  const { supabase, userId } = await requireOwner();
+  const id = formData.get("id")?.toString();
+  if (!id) return;
+
+  await supabase
+    .from("profile_view_links")
     .delete()
     .eq("id", id)
     .eq("profile_user_id", userId);

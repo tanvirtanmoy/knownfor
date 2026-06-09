@@ -5,9 +5,7 @@ import {
   getApprovedFeedback,
   getLatestSummary,
 } from "@/lib/queries";
-import { ProfileHeader } from "@/components/ProfileHeader";
-import { FeedbackCard } from "@/components/FeedbackCard";
-import { TraitPill } from "@/components/TraitPill";
+import { ProfileWall } from "@/components/ProfileWall";
 
 interface Props {
   params: { slug: string };
@@ -16,6 +14,8 @@ interface Props {
 export async function generateMetadata({
   params,
 }: Props): Promise<Metadata> {
+  // getProfileBySlug uses the RLS-enforced client, so a private profile returns
+  // null here too — its metadata never leaks.
   const profile = await getProfileBySlug(params.slug);
   if (!profile) return { title: "Profile not found" };
 
@@ -39,6 +39,8 @@ export async function generateMetadata({
 }
 
 export default async function ProfilePage({ params }: Props) {
+  // RLS only returns the row when is_public = true, so private profiles 404 on
+  // their public slug — they're reachable solely via a /v/<token> view link.
   const profile = await getProfileBySlug(params.slug);
   if (!profile) notFound();
 
@@ -47,64 +49,10 @@ export default async function ProfilePage({ params }: Props) {
     getLatestSummary(profile.id),
   ]);
 
-  // The summary and "Known for" traits are derived from public feedback, so they
-  // must never outlive it. If nothing is publicly visible, hide them — otherwise
-  // a profile whose feedback was hidden or deleted would show traits floating
-  // above an empty wall.
-  const hasPublicFeedback = feedback.length > 0;
-
   return (
     <div className="container-page py-12 sm:py-16">
       <div className="mx-auto max-w-4xl">
-        <ProfileHeader profile={profile} />
-
-        {profile.bio && (
-          <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink-soft">
-            {profile.bio}
-          </p>
-        )}
-
-        {hasPublicFeedback && summary?.summary && (
-          <p className="mt-6 max-w-2xl border-l-2 border-brand/40 pl-4 text-lg italic leading-relaxed text-ink">
-            {summary.summary}
-          </p>
-        )}
-
-        {/* Known For — only shown once the AI has derived traits from real
-            feedback. No defaults, so an empty profile stays honest. */}
-        {hasPublicFeedback && summary?.top_traits && summary.top_traits.length > 0 && (
-          <section className="mt-10">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-              Known for
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {summary.top_traits.map((t) => (
-                <TraitPill key={t.trait} label={t.trait} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Feedback wall */}
-        <section className="mt-14">
-          <h2 className="text-2xl font-semibold tracking-tight text-ink">
-            People describe working with {profile.full_name?.split(" ")[0]} as…
-          </h2>
-
-          {feedback.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-line bg-canvas-card/60 p-10 text-center">
-              <p className="text-ink-soft">
-                No feedback has been shared publicly yet.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              {feedback.map((item, i) => (
-                <FeedbackCard key={item.id} item={item} index={i} />
-              ))}
-            </div>
-          )}
-        </section>
+        <ProfileWall profile={profile} feedback={feedback} summary={summary} />
       </div>
     </div>
   );

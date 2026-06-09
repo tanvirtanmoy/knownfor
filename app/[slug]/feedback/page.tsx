@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProfileBySlug } from "@/lib/queries";
+import { getProfileBySlugAdmin } from "@/lib/queries";
 import { getValidLink } from "@/lib/feedback-links";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = await getProfileBySlug(params.slug);
+  const profile = await getProfileBySlugAdmin(params.slug);
   return {
     title: profile ? `Leave feedback for ${profile.full_name}` : "Leave feedback",
     description: profile
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function FeedbackPage({ params, searchParams }: Props) {
-  const profile = await getProfileBySlug(params.slug);
+  const profile = await getProfileBySlugAdmin(params.slug);
   if (!profile) notFound();
 
   const firstName = profile.full_name?.split(" ")[0] ?? profile.full_name ?? "";

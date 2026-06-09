@@ -25,6 +25,7 @@ export interface ProfileRow {
   location: string | null;
   profile_image_url: string | null;
   public_slug: string | null;
+  is_public: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +70,18 @@ export interface FeedbackLinkRow {
   revoked: boolean;
   use_count: number;
   last_used_at: string | null;
+  created_at: string;
+}
+
+export interface ProfileViewLinkRow {
+  id: string;
+  profile_user_id: string;
+  token: string;
+  label: string | null;
+  revoked: boolean;
+  expires_at: string | null;
+  view_count: number;
+  last_viewed_at: string | null;
   created_at: string;
 }
 
@@ -128,6 +141,15 @@ export interface Database {
           token: string;
         };
         Update: Partial<FeedbackLinkRow>;
+        Relationships: [];
+      };
+      profile_view_links: {
+        Row: ProfileViewLinkRow;
+        Insert: Partial<ProfileViewLinkRow> & {
+          profile_user_id: string;
+          token: string;
+        };
+        Update: Partial<ProfileViewLinkRow>;
         Relationships: [];
       };
     };

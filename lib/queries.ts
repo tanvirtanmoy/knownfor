@@ -1,10 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type {
   ProfileRow,
   PublicFeedback,
   FeedbackRow,
   ProfileSummaryRow,
   FeedbackLinkRow,
+  ProfileViewLinkRow,
 } from "@/types/database";
 
 // Public profile by slug. Returns null when not found.
@@ -18,6 +19,21 @@ export async function getProfileBySlug(
     .eq("public_slug", slug)
     .maybeSingle();
   return data ?? null;
+}
+
+// Profile by slug, ignoring visibility (service-role). Used by flows that must
+// work for private profiles too — e.g. the tokenized feedback form, where the
+// owner shares a link and still needs to collect feedback while staying private.
+export async function getProfileBySlugAdmin(
+  slug: string
+): Promise<ProfileRow | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("users")
+    .select("*")
+    .eq("public_slug", slug)
+    .maybeSingle();
+  return (data as ProfileRow | null) ?? null;
 }
 
 // Approved + public feedback for the wall. Selects only public-safe columns —
@@ -77,6 +93,19 @@ export async function getFeedbackLinks(
     .eq("profile_user_id", profileUserId)
     .order("created_at", { ascending: false });
   return (data as FeedbackLinkRow[] | null) ?? [];
+}
+
+// The owner's profile view links (RLS scopes to owner), newest first.
+export async function getViewLinks(
+  profileUserId: string
+): Promise<ProfileViewLinkRow[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("profile_view_links")
+    .select("*")
+    .eq("profile_user_id", profileUserId)
+    .order("created_at", { ascending: false });
+  return (data as ProfileViewLinkRow[] | null) ?? [];
 }
 
 // --- Platform super-admin queries (RLS grants admin cross-user read) -------

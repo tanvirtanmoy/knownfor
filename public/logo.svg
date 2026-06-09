@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="KnownFor">
+  <defs>
+    <linearGradient id="kfBg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f6f6b"/>
+      <stop offset="1" stop-color="#235451"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#kfBg)"/>
+  <g stroke="#ffffff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <line x1="186" y1="150" x2="186" y2="362"/>
+    <line x1="186" y1="256" x2="346" y2="150"/>
+    <line x1="186" y1="256" x2="356" y2="362"/>
+  </g>
+  <circle cx="372" cy="150" r="30" fill="#e3efee"/>
+</svg>

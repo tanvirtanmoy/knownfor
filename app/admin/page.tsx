@@ -5,9 +5,11 @@ import {
   getOwnerFeedback,
   getLatestSummary,
   getFeedbackLinks,
+  getViewLinks,
 } from "@/lib/queries";
 import { AdminFeedbackTable } from "@/components/AdminFeedbackTable";
 import { ShareCard } from "@/components/ShareCard";
+import { ProfileVisibilityCard } from "@/components/ProfileVisibilityCard";
 import { AdminSummaryCard } from "@/components/AdminSummaryCard";
 import { dailyRateLimitKey, getRateLimitCount } from "@/lib/rate-limit-db";
 import { env } from "@/lib/env";
@@ -22,13 +24,18 @@ export const metadata: Metadata = {
 export default async function AdminDashboard({
   searchParams,
 }: {
-  searchParams?: { linkError?: string; summaryError?: string };
+  searchParams?: {
+    linkError?: string;
+    summaryError?: string;
+    viewError?: string;
+  };
 }) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
   const linkError = searchParams?.linkError;
   const summaryError = searchParams?.summaryError;
+  const viewError = searchParams?.viewError;
   const errorMessage =
     linkError === "limit"
       ? "You've reached your limit of active links. Revoke or delete one to generate another."
@@ -36,12 +43,17 @@ export default async function AdminDashboard({
         ? "You've created a lot of links recently. Please try again later."
         : summaryError === "rate"
           ? "You can regenerate your summary up to 3 times a day. Please try again tomorrow."
-          : null;
+          : viewError === "limit"
+            ? "You've reached your limit of active view links. Revoke or delete one to create another."
+            : viewError === "rate"
+              ? "You've created a lot of view links recently. Please try again later."
+              : null;
 
-  const [all, summary, links] = await Promise.all([
+  const [all, summary, links, viewLinks] = await Promise.all([
     getOwnerFeedback(profile.id),
     getLatestSummary(profile.id),
     getFeedbackLinks(profile.id),
+    getViewLinks(profile.id),
   ]);
   // Live daily-usage count for the summary generator (admins are uncapped).
   const isAdmin = profile.role === "admin";
@@ -79,6 +91,15 @@ export default async function AdminDashboard({
         >
           {errorMessage}
         </div>
+      )}
+
+      {profile.public_slug && (
+        <ProfileVisibilityCard
+          isPublic={profile.is_public}
+          slug={profile.public_slug}
+          siteUrl={env.siteUrl()}
+          links={viewLinks}
+        />
       )}
 
       {profile.public_slug && (

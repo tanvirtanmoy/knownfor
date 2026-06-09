@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getProfileBySlug, getApprovedFeedback } from "@/lib/queries";
+import { getProfileBySlugAdmin, getApprovedFeedback } from "@/lib/queries";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import { Button } from "@/components/ui/Button";
 
@@ -16,7 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default async function ThanksPage({ params }: Props) {
-  const profile = await getProfileBySlug(params.slug);
+  // Admin lookup: this page is reached right after submitting feedback, which
+  // works for private profiles too (token-gated), so resolve without RLS.
+  const profile = await getProfileBySlugAdmin(params.slug);
   if (!profile) notFound();
 
   // Only reachable right after submitting (the submit action sets this cookie).
@@ -25,7 +27,8 @@ export default async function ThanksPage({ params }: Props) {
     redirect(`/${params.slug}/feedback`);
   }
 
-  const feedback = await getApprovedFeedback(profile.id);
+  // The wall preview / public-profile link only make sense for public profiles.
+  const feedback = profile.is_public ? await getApprovedFeedback(profile.id) : [];
   const firstName = profile.full_name?.split(" ")[0] ?? "them";
 
   return (
@@ -57,13 +60,15 @@ export default async function ThanksPage({ params }: Props) {
           </section>
         )}
 
-        <div className="mt-12 text-center">
-          <Link href={`/${profile.public_slug}`}>
-            <Button size="lg" variant="secondary">
-              View public profile
-            </Button>
-          </Link>
-        </div>
+        {profile.is_public && (
+          <div className="mt-12 text-center">
+            <Link href={`/${profile.public_slug}`}>
+              <Button size="lg" variant="secondary">
+                View public profile
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
