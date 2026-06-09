@@ -7,9 +7,14 @@ import type { ProfileSummaryRow } from "@/types/database";
 export function AdminSummaryCard({
   summary,
   hasApprovedFeedback,
+  showDailyLimit = false,
 }: {
   summary: ProfileSummaryRow | null;
   hasApprovedFeedback: boolean;
+  // Non-admins can (re)generate at most 3×/day; surface that up front rather
+  // than only via the error banner after they hit the cap. Admins are exempt,
+  // so this stays hidden for them.
+  showDailyLimit?: boolean;
 }) {
   return (
     <section className="rounded-2xl border border-line bg-canvas-card p-6 shadow-card">
@@ -21,11 +26,18 @@ export function AdminSummaryCard({
             approved public feedback.
           </p>
         </div>
-        <form action={generateSummary}>
-          <Button type="submit" size="sm" disabled={!hasApprovedFeedback}>
-            {summary ? "Regenerate" : "Generate summary"}
-          </Button>
-        </form>
+        <div className="flex flex-col items-start gap-1.5 sm:items-end">
+          <form action={generateSummary}>
+            <Button type="submit" size="sm" disabled={!hasApprovedFeedback}>
+              {summary ? "Regenerate" : "Generate summary"}
+            </Button>
+          </form>
+          {showDailyLimit && hasApprovedFeedback && (
+            <p className="text-xs text-ink-muted">
+              Up to 3 generations per day
+            </p>
+          )}
+        </div>
       </div>
 
       {!hasApprovedFeedback && (

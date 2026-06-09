@@ -77,6 +77,7 @@ export default async function AdminDashboard({
       <AdminSummaryCard
         summary={summary}
         hasApprovedFeedback={approved.length > 0}
+        showDailyLimit={profile.role !== "admin"}
       />
 
       <AdminFeedbackTable
