@@ -43,8 +43,21 @@ async function SiteHeader() {
   return (
     <header className="border-b border-line/70 bg-canvas/80 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
-          Known<span className="text-brand">For</span>
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 rounded-lg"
+          />
+          <span>
+            Known<span className="text-brand">For</span>
+          </span>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {profile ? (
