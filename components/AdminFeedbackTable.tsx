@@ -3,7 +3,6 @@ import { RELATIONSHIP_LABELS } from "@/lib/validators/feedback";
 import { moderateFeedback } from "@/lib/actions/admin";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
-import { AdminEditSentence } from "@/components/AdminEditSentence";
 
 function ActionButton({
   id,
@@ -57,7 +56,9 @@ function Row({ item }: { item: FeedbackRow }) {
         <span className="text-ink-muted">{formatDate(item.created_at)}</span>
       </div>
 
-      <AdminEditSentence id={item.id} sentence={item.sentence} />
+      {/* Read-only: recipients curate (approve/hide/reject) but never reword
+          what an author wrote — that's what keeps the testimonials credible. */}
+      <p className="text-lg leading-relaxed text-ink">{item.sentence}</p>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-ink-muted sm:grid-cols-4">
         <div>

@@ -104,24 +104,6 @@ export async function moderateFeedback(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
 }
 
-// Allow the owner to fix a minor typo in a submission's sentence.
-export async function editFeedbackSentence(formData: FormData): Promise<void> {
-  const { supabase, userId } = await requireOwner();
-  const id = formData.get("id")?.toString();
-  const sentenceRaw = formData.get("sentence")?.toString() ?? "";
-  const sentence = sanitizeText(sentenceRaw).slice(0, 280);
-  if (!id || sentence.length < 1) return;
-
-  await supabase
-    .from("feedback")
-    .update({ sentence })
-    .eq("id", id)
-    .eq("profile_user_id", userId);
-
-  revalidatePath("/admin");
-  revalidatePath("/", "layout");
-}
-
 export interface ProfileFormState {
   error?: string;
   success?: boolean;
