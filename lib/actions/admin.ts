@@ -231,7 +231,7 @@ export async function generateSummary(): Promise<void> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", userId)
     .maybeSingle();
 
@@ -254,6 +254,20 @@ export async function generateSummary(): Promise<void> {
     revalidatePath("/admin");
     revalidatePath("/", "layout");
     return;
+  }
+
+  // Rate limit: non-admins may (re)generate the summary at most 3×/day. This
+  // caps OpenAI spend and abuse; admins (role = "admin") are exempt. Checked
+  // right before the OpenAI call so a blocked attempt never burns API quota and
+  // a no-op "clear empty summary" above never consumes a daily slot.
+  if (profile?.role !== "admin") {
+    const rate = await checkRateLimit(supabase, `summary:${userId}`, {
+      limit: 3,
+      windowSeconds: 60 * 60 * 24,
+    });
+    if (!rate.ok) {
+      redirect("/admin?summaryError=rate");
+    }
   }
 
   const result = await summarizeFeedback({

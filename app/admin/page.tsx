@@ -19,18 +19,21 @@ export const metadata: Metadata = {
 export default async function AdminDashboard({
   searchParams,
 }: {
-  searchParams?: { linkError?: string };
+  searchParams?: { linkError?: string; summaryError?: string };
 }) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
   const linkError = searchParams?.linkError;
-  const linkErrorMessage =
+  const summaryError = searchParams?.summaryError;
+  const errorMessage =
     linkError === "limit"
       ? "You've reached your limit of active links. Revoke or delete one to generate another."
       : linkError === "rate"
         ? "You've created a lot of links recently. Please try again later."
-        : null;
+        : summaryError === "rate"
+          ? "You can regenerate your summary up to 3 times a day. Please try again tomorrow."
+          : null;
 
   const [all, summary, links] = await Promise.all([
     getOwnerFeedback(profile.id),
@@ -54,12 +57,12 @@ export default async function AdminDashboard({
         </p>
       </div>
 
-      {linkErrorMessage && (
+      {errorMessage && (
         <div
           role="alert"
           className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
-          {linkErrorMessage}
+          {errorMessage}
         </div>
       )}
 
