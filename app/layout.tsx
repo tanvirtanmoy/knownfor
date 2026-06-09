@@ -62,7 +62,7 @@ async function SiteHeader() {
 
 function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-line/70">
+    <footer className="mt-12 border-t border-line/70">
       <div className="container-page flex flex-col items-center justify-between gap-2 py-8 text-sm text-ink-muted sm:flex-row">
         <p>
           Known<span className="text-brand">For</span> · knownfor.eu

@@ -17,9 +17,9 @@ export default async function AdminLayout({
   if (!profile.public_slug) redirect("/onboarding");
 
   // "Admin" is reserved for the platform super-admin. Everyone else sees their
-  // own last name (falling back to their first name, then a neutral label).
+  // own first name (falling back to a neutral label).
   const nameParts = profile.full_name?.trim().split(/\s+/) ?? [];
-  const ownLabel = nameParts.at(-1) || "Dashboard";
+  const ownLabel = nameParts[0] || "Dashboard";
   const heading = profile.role === "admin" ? "Admin" : ownLabel;
 
   return (
